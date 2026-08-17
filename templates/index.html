@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Searchable IMD Weather</title>
+    <style>
+        :root {
+            --primary-color: #007bff;
+            --hover-color: #0056b3;
+            --bg-color: #f4f7f6;
+            --card-bg: #ffffff;
+            --text-color: #333333;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .dashboard-container {
+            background-color: var(--card-bg);
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            width: 100%;
+            max-width: 450px;
+        }
+
+        h1 { margin-top: 0; font-size: 1.8rem; color: #1a1a1a; }
+        
+        .form-group { margin-bottom: 20px; text-align: left; }
+        label { font-size: 0.9rem; color: #555; font-weight: bold; margin-bottom: 5px; display: block; }
+        
+        input[type="text"] {
+            padding: 12px;
+            width: 100%;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 1rem;
+            margin-bottom: 15px;
+        }
+
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            width: 100%;
+            font-weight: bold;
+        }
+
+        button:hover { background-color: var(--hover-color); }
+        button:disabled { background-color: #a0c4ff; cursor: not-allowed; }
+
+        .weather-results {
+            margin-top: 25px;
+            padding: 20px;
+            border-radius: 8px;
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            display: none;
+            text-align: left;
+        }
+
+        .weather-results.show { display: block; animation: fadeIn 0.4s ease-in; }
+        .data-row { margin: 10px 0; display: flex; justify-content: space-between; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+        .data-label { font-weight: bold; color: #555; }
+        .data-value { color: #111; }
+        .error-message { color: #dc3545; font-weight: bold; margin-top: 15px; display: none; }
+        .footer-note { border:none; margin-top: 15px; font-size: 0.8rem; color: #888; text-align: center; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        </style>
+    </title>
+</head>
+<body>
+
+    <div class="dashboard-container">
+        <h1>IMD Live Weather</h1>
+        <p style="color: #666; font-size: 0.9rem;">Type a city name to fetch real-time data.</p>
+
+        <div class="form-group">
+            <label for="stationInput">Search Station / City:</label>
+            <input type="text" id="stationInput" list="stationList" placeholder="Start typing... e.g., Kolkata">
+            <datalist id="stationList"></datalist>
+            
+            <button id="fetchBtn" onclick="fetchWeatherData()">Get Current Weather</button>
+        </div>
+
+        <div id="loadingIndicator" style="display: none; color: var(--primary-color); margin-top: 10px;">
+            Fetching data from IMD... ⏳
+        </div>
+
+        <div id="errorMessage" class="error-message"></div>
+
+        <div id="weatherResults" class="weather-results">
+            <div class="data-row">
+                <span class="data-label">Station:</span>
+                <span class="data-value" id="resStation">--</span>
+            </div>
+            <div class="data-row">
+                <span class="data-label">Temperature:</span>
+                <span class="data-value" id="resTemp">-- &deg;C</span>
+            </div>
+            <div class="data-row">
+                <span class="data-label">Humidity:</span>
+                <span class="data-value" id="resHumidity">-- %</span>
+            </div>
+            <div class="data-row">
+                <span class="data-label">Wind Speed:</span>
+                <span class="data-value" id="resWind">-- Kmph</span>
+            </div>
+            <div class="footer-note">
+                Data provided by India Meteorological Department (IMD)
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let stationDictionary = {};
+
+        // Fetch stations from the Python server on load
+        window.onload = async function() {
+            try {
+                const response = await fetch('/api/stations');
+                stationDictionary = await response.json();
+                
+                const dataList = document.getElementById('stationList');
+                for (const stationName in stationDictionary) {
+                    const option = document.createElement('option');
+                    option.value = stationName;
+                    dataList.appendChild(option);
+                }
+            } catch (error) {
+                console.error("Could not load stations list:", error);
+            }
+        };
+
+        async function fetchWeatherData() {
+            const btn = document.getElementById('fetchBtn');
+            const loading = document.getElementById('loadingIndicator');
+            const resultsDiv = document.getElementById('weatherResults');
+            const errorDiv = document.getElementById('errorMessage');
+            
+            // Get user input and convert to upper case to ensure case-insensitive matching
+            const rawInput = document.getElementById('stationInput').value.trim();
+            const searchName = rawInput.toUpperCase();
+            
+            let stationId = null;
+            let displayStationName = rawInput;
+
+            // Search through the dictionary to find a matching key
+            for (const [key, value] of Object.entries(stationDictionary)) {
+                if (key.toUpperCase() === searchName) {
+                    stationId = value;
+                    displayStationName = key; // Use the properly formatted dictionary name
+                    break;
+                }
+            }
+
+            if (!stationId) {
+                errorDiv.innerText = "Please select a valid station from the list.";
+                errorDiv.style.display = 'block';
+                resultsDiv.classList.remove('show');
+                return;
+            }
+
+            // UI loading state
+            btn.disabled = true;
+            loading.style.display = 'block';
+            resultsDiv.classList.remove('show');
+            errorDiv.style.display = 'none';
+
+            try {
+                const response = await fetch(`/api/weather?station_id=${stationId}`);
+                const jsonResponse = await response.json();
+
+                if (jsonResponse.status === "success") {
+                    let weatherData = jsonResponse.data;
+                    
+                    // Handle the IMD JSON format
+                    if (Array.isArray(weatherData) && weatherData.length > 0) {
+                        weatherData = weatherData[0];
+                    } else if (weatherData.current_wx) {
+                        weatherData = weatherData.current_wx[0];
+                    }
+
+                    // Populate the UI with data
+                    document.getElementById('resStation').innerText = weatherData['Station'] || displayStationName;
+                    document.getElementById('resTemp').innerHTML = (weatherData['Dry Bulb Temperature'] || weatherData['Temperature'] || '--') + ' &deg;C';
+                    document.getElementById('resHumidity').innerText = (weatherData['Relative Humidity'] || weatherData['Humidity'] || '--') + ' %';
+                    document.getElementById('resWind').innerText = (weatherData['Wind Speed'] || '--') + ' Kmph';
+
+                    resultsDiv.classList.add('show');
+                } else {
+                    throw new Error(jsonResponse.message || "Failed to parse data");
+                }
+            } catch (error) {
+                console.error(error);
+                errorDiv.innerText = "Error fetching data: " + error.message;
+                errorDiv.style.display = 'block';
+            } finally {
+                btn.disabled = false;
+                loading.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
