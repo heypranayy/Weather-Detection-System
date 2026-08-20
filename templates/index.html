@@ -3,225 +3,486 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Searchable IMD Weather</title>
+    <title>BAADAL — West Bengal Weather</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Sora:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary-color: #007bff;
-            --hover-color: #0056b3;
-            --bg-color: #f4f7f6;
-            --card-bg: #ffffff;
-            --text-color: #333333;
+            --ink: #10221f;
+            --ink-soft: #3d534e;
+            --paper: rgba(247, 250, 248, 0.82);
+            --paper-solid: #f4f8f6;
+            --river: #0f5c52;
+            --river-deep: #083f38;
+            --mango: #d97706;
+            --mango-soft: #f59e0b;
+            --mist: rgba(255, 255, 255, 0.18);
+            --line: rgba(16, 34, 31, 0.12);
         }
-        
+
+        * { box-sizing: border-box; }
+
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
             margin: 0;
-            padding: 20px;
+            min-height: 100vh;
+            font-family: "Sora", sans-serif;
+            color: var(--ink);
+            background: #0a2e2a;
+            overflow-x: hidden;
         }
 
-        .dashboard-container {
-            background-color: var(--card-bg);
-            padding: 40px;
-            border-radius: 12px;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
-            text-align: center;
-            width: 100%;
-            max-width: 450px;
+        .sky {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            background:
+                radial-gradient(ellipse 90% 60% at 15% 10%, rgba(232, 168, 56, 0.35), transparent 55%),
+                radial-gradient(ellipse 70% 50% at 85% 20%, rgba(56, 160, 145, 0.45), transparent 50%),
+                linear-gradient(165deg, #1a4f48 0%, #0d3530 42%, #071f1c 100%);
         }
 
-        h1 { margin-top: 0; font-size: 1.8rem; color: #1a1a1a; }
-        
-        .form-group { margin-bottom: 20px; text-align: left; }
-        label { font-size: 0.9rem; color: #555; font-weight: bold; margin-bottom: 5px; display: block; }
-        
+        .sky::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background-image:
+                radial-gradient(1.5px 1.5px at 12% 18%, rgba(255,255,255,0.35), transparent),
+                radial-gradient(1px 1px at 28% 42%, rgba(255,255,255,0.25), transparent),
+                radial-gradient(1.5px 1.5px at 61% 14%, rgba(255,255,255,0.3), transparent),
+                radial-gradient(1px 1px at 78% 36%, rgba(255,255,255,0.22), transparent),
+                radial-gradient(1.5px 1.5px at 91% 58%, rgba(255,255,255,0.28), transparent);
+            animation: drift 28s linear infinite;
+            opacity: 0.7;
+        }
+
+        .cloud {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(40px);
+            opacity: 0.35;
+            animation: floatCloud 22s ease-in-out infinite;
+        }
+
+        .cloud-a {
+            width: 42vw;
+            height: 22vh;
+            top: 8%;
+            left: -8%;
+            background: #7eb8ad;
+            animation-delay: 0s;
+        }
+
+        .cloud-b {
+            width: 36vw;
+            height: 18vh;
+            top: 18%;
+            right: -10%;
+            background: #c4a35a;
+            opacity: 0.22;
+            animation-delay: -8s;
+            animation-duration: 30s;
+        }
+
+        .rain {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background: repeating-linear-gradient(
+                -18deg,
+                transparent 0,
+                transparent 14px,
+                rgba(255, 255, 255, 0.04) 14px,
+                rgba(255, 255, 255, 0.04) 15px
+            );
+            animation: rainShift 1.2s linear infinite;
+            opacity: 0.55;
+        }
+
+        .shell {
+            position: relative;
+            z-index: 1;
+            min-height: 100vh;
+            display: grid;
+            place-items: center;
+            padding: clamp(1.25rem, 4vw, 2.5rem);
+        }
+
+        .stage {
+            width: min(560px, 100%);
+            animation: riseIn 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+        }
+
+        .brand {
+            font-family: "Fraunces", serif;
+            font-size: clamp(3.4rem, 12vw, 5.4rem);
+            font-weight: 700;
+            line-height: 0.9;
+            letter-spacing: -0.03em;
+            color: #f7faf8;
+            margin: 0 0 0.35rem;
+            text-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+        }
+
+        .tag {
+            margin: 0 0 1.75rem;
+            color: rgba(247, 250, 248, 0.78);
+            font-weight: 300;
+            font-size: 1.02rem;
+            letter-spacing: 0.01em;
+            max-width: 28ch;
+        }
+
+        .panel {
+            background: var(--paper);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            border: 1px solid var(--mist);
+            border-radius: 22px;
+            padding: 1.35rem 1.35rem 1.5rem;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.22);
+        }
+
+        label {
+            display: block;
+            font-size: 0.72rem;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--ink-soft);
+            margin-bottom: 0.55rem;
+        }
+
+        .search-row {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 0.65rem;
+        }
+
         input[type="text"] {
-            padding: 12px;
             width: 100%;
-            box-sizing: border-box;
-            border: 1px solid #ccc;
-            border-radius: 6px;
+            border: 1.5px solid var(--line);
+            background: var(--paper-solid);
+            border-radius: 14px;
+            padding: 0.95rem 1rem;
+            font-family: inherit;
             font-size: 1rem;
-            margin-bottom: 15px;
+            color: var(--ink);
+            outline: none;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        input[type="text"]:focus {
+            border-color: var(--river);
+            box-shadow: 0 0 0 3px rgba(15, 92, 82, 0.15);
         }
 
         button {
-            background-color: var(--primary-color);
-            color: white;
             border: none;
-            padding: 12px 24px;
-            font-size: 1rem;
-            border-radius: 6px;
+            border-radius: 14px;
+            padding: 0.95rem 1.2rem;
+            background: linear-gradient(160deg, var(--river) 0%, var(--river-deep) 100%);
+            color: #f7faf8;
+            font-family: inherit;
+            font-weight: 600;
+            font-size: 0.95rem;
             cursor: pointer;
-            transition: background-color 0.3s ease;
-            width: 100%;
-            font-weight: bold;
+            transition: transform 0.15s ease, filter 0.2s ease;
+            white-space: nowrap;
         }
 
-        button:hover { background-color: var(--hover-color); }
-        button:disabled { background-color: #a0c4ff; cursor: not-allowed; }
+        button:hover { filter: brightness(1.08); }
+        button:active { transform: scale(0.98); }
+        button:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+            filter: none;
+        }
 
-        .weather-results {
-            margin-top: 25px;
-            padding: 20px;
-            border-radius: 8px;
-            background-color: #f8f9fa;
-            border: 1px solid #e9ecef;
+        .status {
+            min-height: 1.4rem;
+            margin-top: 0.85rem;
+            font-size: 0.88rem;
+            color: var(--ink-soft);
+        }
+
+        .status.error { color: #b42318; font-weight: 500; }
+        .status.loading {
+            color: var(--river);
+            animation: pulse 1.2s ease-in-out infinite;
+        }
+
+        .results {
+            margin-top: 1.1rem;
             display: none;
-            text-align: left;
+            border-top: 1px solid var(--line);
+            padding-top: 1.1rem;
         }
 
-        .weather-results.show { display: block; animation: fadeIn 0.4s ease-in; }
-        .data-row { margin: 10px 0; display: flex; justify-content: space-between; border-bottom: 1px solid #eee; padding-bottom: 5px; }
-        .data-label { font-weight: bold; color: #555; }
-        .data-value { color: #111; }
-        .error-message { color: #dc3545; font-weight: bold; margin-top: 15px; display: none; }
-        .footer-note { border:none; margin-top: 15px; font-size: 0.8rem; color: #888; text-align: center; }
+        .results.show {
+            display: block;
+            animation: slideUp 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+        }
 
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-10px); }
+        .hero-metric {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 1rem;
+            margin-bottom: 1.15rem;
+        }
+
+        .temp {
+            font-family: "Fraunces", serif;
+            font-size: clamp(3rem, 10vw, 3.8rem);
+            line-height: 0.9;
+            letter-spacing: -0.03em;
+            color: var(--ink);
+        }
+
+        .temp span {
+            font-size: 1.35rem;
+            vertical-align: super;
+            margin-left: 0.1rem;
+            color: var(--ink-soft);
+        }
+
+        .condition-block {
+            text-align: right;
+        }
+
+        .condition {
+            font-weight: 600;
+            font-size: 1.05rem;
+            color: var(--river-deep);
+        }
+
+        .place {
+            margin-top: 0.25rem;
+            font-size: 0.85rem;
+            color: var(--ink-soft);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.7rem;
+        }
+
+        .metric {
+            background: rgba(15, 92, 82, 0.06);
+            border-radius: 14px;
+            padding: 0.85rem 0.9rem;
+        }
+
+        .metric .k {
+            display: block;
+            font-size: 0.68rem;
+            letter-spacing: 0.07em;
+            text-transform: uppercase;
+            color: var(--ink-soft);
+            margin-bottom: 0.3rem;
+        }
+
+        .metric .v {
+            font-weight: 600;
+            font-size: 1.05rem;
+            color: var(--ink);
+        }
+
+        .foot {
+            margin-top: 1rem;
+            font-size: 0.72rem;
+            color: var(--ink-soft);
+            letter-spacing: 0.02em;
+        }
+
+        .hint {
+            margin-top: 1.1rem;
+            color: rgba(247, 250, 248, 0.55);
+            font-size: 0.78rem;
+            text-align: center;
+        }
+
+        @keyframes riseIn {
+            from { opacity: 0; transform: translateY(24px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        </style>
-    </title>
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.55; }
+            50% { opacity: 1; }
+        }
+
+        @keyframes floatCloud {
+            0%, 100% { transform: translateX(0); }
+            50% { transform: translateX(4vw); }
+        }
+
+        @keyframes rainShift {
+            from { background-position: 0 0; }
+            to { background-position: 18px 28px; }
+        }
+
+        @keyframes drift {
+            from { transform: translateY(0); }
+            to { transform: translateY(-18px); }
+        }
+
+        @media (max-width: 520px) {
+            .search-row { grid-template-columns: 1fr; }
+            button { width: 100%; }
+            .grid { grid-template-columns: 1fr; }
+        }
+    </style>
 </head>
 <body>
-
-    <div class="dashboard-container">
-        <h1>IMD Live Weather</h1>
-        <p style="color: #666; font-size: 0.9rem;">Type a city name to fetch real-time data.</p>
-
-        <div class="form-group">
-            <label for="stationInput">Search Station / City:</label>
-            <input type="text" id="stationInput" list="stationList" placeholder="Start typing... e.g., Kolkata">
-            <datalist id="stationList"></datalist>
-            
-            <button id="fetchBtn" onclick="fetchWeatherData()">Get Current Weather</button>
-        </div>
-
-        <div id="loadingIndicator" style="display: none; color: var(--primary-color); margin-top: 10px;">
-            Fetching data from IMD... ⏳
-        </div>
-
-        <div id="errorMessage" class="error-message"></div>
-
-        <div id="weatherResults" class="weather-results">
-            <div class="data-row">
-                <span class="data-label">Station:</span>
-                <span class="data-value" id="resStation">--</span>
-            </div>
-            <div class="data-row">
-                <span class="data-label">Temperature:</span>
-                <span class="data-value" id="resTemp">-- &deg;C</span>
-            </div>
-            <div class="data-row">
-                <span class="data-label">Humidity:</span>
-                <span class="data-value" id="resHumidity">-- %</span>
-            </div>
-            <div class="data-row">
-                <span class="data-label">Wind Speed:</span>
-                <span class="data-value" id="resWind">-- Kmph</span>
-            </div>
-            <div class="footer-note">
-                Data provided by India Meteorological Department (IMD)
-            </div>
-        </div>
+    <div class="sky" aria-hidden="true">
+        <div class="cloud cloud-a"></div>
+        <div class="cloud cloud-b"></div>
+        <div class="rain"></div>
     </div>
+
+    <main class="shell">
+        <div class="stage">
+            <h1 class="brand">BAADAL</h1>
+            <p class="tag">Live sky over Kolkata &amp; West Bengal — rain, heat, and river wind in one glance.</p>
+
+            <div class="panel">
+                <label for="stationInput">Station / City</label>
+                <div class="search-row">
+                    <input
+                        type="text"
+                        id="stationInput"
+                        list="stationList"
+                        placeholder="Try Kolkata, Howrah, Siliguri..."
+                        autocomplete="off"
+                    >
+                    <datalist id="stationList"></datalist>
+                    <button id="fetchBtn" onclick="fetchWeatherData()">Read sky</button>
+                </div>
+
+                <div id="statusLine" class="status"></div>
+
+                <div id="weatherResults" class="results">
+                    <div class="hero-metric">
+                        <div class="temp" id="resTemp">--<span>&deg;C</span></div>
+                        <div class="condition-block">
+                            <div class="condition" id="resCondition">--</div>
+                            <div class="place" id="resPlace">--</div>
+                        </div>
+                    </div>
+
+                    <div class="grid">
+                        <div class="metric">
+                            <span class="k">Feels like</span>
+                            <span class="v" id="resFeels">--</span>
+                        </div>
+                        <div class="metric">
+                            <span class="k">Humidity</span>
+                            <span class="v" id="resHumidity">--</span>
+                        </div>
+                        <div class="metric">
+                            <span class="k">Wind</span>
+                            <span class="v" id="resWind">--</span>
+                        </div>
+                        <div class="metric">
+                            <span class="k">Rain</span>
+                            <span class="v" id="resRain">--</span>
+                        </div>
+                    </div>
+
+                    <div class="foot" id="resTime">Observed --</div>
+                </div>
+            </div>
+
+            <p class="hint">Open-Meteo · Asia/Kolkata · 36 West Bengal stations</p>
+        </div>
+    </main>
 
     <script>
         let stationDictionary = {};
 
-        // Fetch stations from the Python server on load
-        window.onload = async function() {
+        window.onload = async function () {
             try {
-                const response = await fetch('/api/stations');
+                const response = await fetch("/api/stations");
                 stationDictionary = await response.json();
-                
-                const dataList = document.getElementById('stationList');
+                const dataList = document.getElementById("stationList");
                 for (const stationName in stationDictionary) {
-                    const option = document.createElement('option');
+                    const option = document.createElement("option");
                     option.value = stationName;
                     dataList.appendChild(option);
                 }
             } catch (error) {
-                console.error("Could not load stations list:", error);
+                setStatus("Could not load station list.", true);
             }
         };
 
-        async function fetchWeatherData() {
-            const btn = document.getElementById('fetchBtn');
-            const loading = document.getElementById('loadingIndicator');
-            const resultsDiv = document.getElementById('weatherResults');
-            const errorDiv = document.getElementById('errorMessage');
-            
-            // Get user input and convert to upper case to ensure case-insensitive matching
-            const rawInput = document.getElementById('stationInput').value.trim();
-            const searchName = rawInput.toUpperCase();
-            
-            let stationId = null;
-            let displayStationName = rawInput;
+        function setStatus(message, isError = false, isLoading = false) {
+            const el = document.getElementById("statusLine");
+            el.textContent = message || "";
+            el.className = "status" + (isError ? " error" : "") + (isLoading ? " loading" : "");
+        }
 
-            // Search through the dictionary to find a matching key
-            for (const [key, value] of Object.entries(stationDictionary)) {
+        async function fetchWeatherData() {
+            const btn = document.getElementById("fetchBtn");
+            const resultsDiv = document.getElementById("weatherResults");
+            const rawInput = document.getElementById("stationInput").value.trim();
+            const searchName = rawInput.toUpperCase();
+
+            let matchedName = null;
+            for (const key of Object.keys(stationDictionary)) {
                 if (key.toUpperCase() === searchName) {
-                    stationId = value;
-                    displayStationName = key; // Use the properly formatted dictionary name
+                    matchedName = key;
                     break;
                 }
             }
 
-            if (!stationId) {
-                errorDiv.innerText = "Please select a valid station from the list.";
-                errorDiv.style.display = 'block';
-                resultsDiv.classList.remove('show');
+            if (!matchedName) {
+                setStatus("Pick a West Bengal station from the list.", true);
+                resultsDiv.classList.remove("show");
                 return;
             }
 
-            // UI loading state
             btn.disabled = true;
-            loading.style.display = 'block';
-            resultsDiv.classList.remove('show');
-            errorDiv.style.display = 'none';
+            resultsDiv.classList.remove("show");
+            setStatus("Listening to the sky…", false, true);
 
             try {
-                const response = await fetch(`/api/weather?station_id=${stationId}`);
+                const response = await fetch(`/api/weather?station=${encodeURIComponent(matchedName)}`);
                 const jsonResponse = await response.json();
 
-                if (jsonResponse.status === "success") {
-                    let weatherData = jsonResponse.data;
-                    
-                    // Handle the IMD JSON format
-                    if (Array.isArray(weatherData) && weatherData.length > 0) {
-                        weatherData = weatherData[0];
-                    } else if (weatherData.current_wx) {
-                        weatherData = weatherData.current_wx[0];
-                    }
-
-                    // Populate the UI with data
-                    document.getElementById('resStation').innerText = weatherData['Station'] || displayStationName;
-                    document.getElementById('resTemp').innerHTML = (weatherData['Dry Bulb Temperature'] || weatherData['Temperature'] || '--') + ' &deg;C';
-                    document.getElementById('resHumidity').innerText = (weatherData['Relative Humidity'] || weatherData['Humidity'] || '--') + ' %';
-                    document.getElementById('resWind').innerText = (weatherData['Wind Speed'] || '--') + ' Kmph';
-
-                    resultsDiv.classList.add('show');
-                } else {
+                if (jsonResponse.status !== "success") {
                     throw new Error(jsonResponse.message || "Failed to parse data");
                 }
+
+                const w = jsonResponse.data;
+                document.getElementById("resTemp").innerHTML = `${w.Temperature ?? "--"}<span>&deg;C</span>`;
+                document.getElementById("resCondition").textContent = w.Condition || "--";
+                document.getElementById("resPlace").textContent = `${w.Station || matchedName} · ${w.District || "West Bengal"}`;
+                document.getElementById("resFeels").textContent = `${w["Feels Like"] ?? "--"} °C`;
+                document.getElementById("resHumidity").textContent = `${w["Relative Humidity"] ?? "--"} %`;
+                document.getElementById("resWind").textContent = `${w["Wind Speed"] ?? "--"} km/h`;
+                document.getElementById("resRain").textContent = `${w.Precipitation ?? "--"} mm`;
+                document.getElementById("resTime").textContent = `Observed ${w["Observed At"] || "--"} · Asia/Kolkata`;
+
+                resultsDiv.classList.add("show");
+                setStatus("");
             } catch (error) {
-                console.error(error);
-                errorDiv.innerText = "Error fetching data: " + error.message;
-                errorDiv.style.display = 'block';
+                setStatus("Error: " + error.message, true);
             } finally {
                 btn.disabled = false;
-                loading.style.display = 'none';
             }
         }
+
+        document.getElementById("stationInput").addEventListener("keydown", (e) => {
+            if (e.key === "Enter") fetchWeatherData();
+        });
     </script>
 </body>
 </html>
