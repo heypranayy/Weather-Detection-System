@@ -3,43 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BAADAL — West Bengal Weather</title>
+    <title>MAUSAM — India IoT Weather Detection Network</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Sora:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --ink: #10221f;
-            --ink-soft: #3d534e;
-            --paper: rgba(247, 250, 248, 0.82);
-            --paper-solid: #f4f8f6;
-            --river: #0f5c52;
-            --river-deep: #083f38;
-            --mango: #d97706;
-            --mango-soft: #f59e0b;
-            --mist: rgba(255, 255, 255, 0.18);
-            --line: rgba(16, 34, 31, 0.12);
+            --ink: #0f172a;
+            --ink-soft: #475569;
+            --paper: rgba(255, 255, 255, 0.88);
+            --paper-solid: #ffffff;
+            --primary: #0284c7;
+            --primary-deep: #0369a1;
+            --accent: #f59e0b;
+            --line: rgba(15, 23, 42, 0.12);
+            --glass-border: rgba(255, 255, 255, 0.4);
         }
 
-        * { box-sizing: border-box; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
 
         body {
-            margin: 0;
             min-height: 100vh;
-            font-family: "Sora", sans-serif;
+            font-family: "Plus Jakarta Sans", sans-serif;
             color: var(--ink);
-            background: #0a2e2a;
+            background: #091e3a;
             overflow-x: hidden;
         }
 
+        /* Dynamic Sky Background */
         .sky {
             position: fixed;
             inset: 0;
             z-index: 0;
             background:
-                radial-gradient(ellipse 90% 60% at 15% 10%, rgba(232, 168, 56, 0.35), transparent 55%),
-                radial-gradient(ellipse 70% 50% at 85% 20%, rgba(56, 160, 145, 0.45), transparent 50%),
-                linear-gradient(165deg, #1a4f48 0%, #0d3530 42%, #071f1c 100%);
+                radial-gradient(ellipse 80% 60% at 20% 15%, rgba(14, 165, 233, 0.3), transparent 60%),
+                radial-gradient(ellipse 70% 50% at 85% 25%, rgba(245, 158, 11, 0.25), transparent 50%),
+                linear-gradient(160deg, #0b2545 0%, #134074 45%, #00121e 100%);
         }
 
         .sky::before {
@@ -47,56 +46,38 @@
             position: absolute;
             inset: 0;
             background-image:
-                radial-gradient(1.5px 1.5px at 12% 18%, rgba(255,255,255,0.35), transparent),
-                radial-gradient(1px 1px at 28% 42%, rgba(255,255,255,0.25), transparent),
-                radial-gradient(1.5px 1.5px at 61% 14%, rgba(255,255,255,0.3), transparent),
-                radial-gradient(1px 1px at 78% 36%, rgba(255,255,255,0.22), transparent),
-                radial-gradient(1.5px 1.5px at 91% 58%, rgba(255,255,255,0.28), transparent);
-            animation: drift 28s linear infinite;
-            opacity: 0.7;
+                radial-gradient(1.5px 1.5px at 15% 22%, rgba(255,255,255,0.4), transparent),
+                radial-gradient(1px 1px at 35% 45%, rgba(255,255,255,0.3), transparent),
+                radial-gradient(1.5px 1.5px at 68% 18%, rgba(255,255,255,0.35), transparent),
+                radial-gradient(1px 1px at 82% 40%, rgba(255,255,255,0.25), transparent);
+            animation: drift 32s linear infinite;
+            opacity: 0.6;
         }
 
         .cloud {
             position: absolute;
             border-radius: 50%;
-            filter: blur(40px);
-            opacity: 0.35;
-            animation: floatCloud 22s ease-in-out infinite;
+            filter: blur(45px);
+            opacity: 0.28;
+            animation: floatCloud 24s ease-in-out infinite;
         }
 
-        .cloud-a {
-            width: 42vw;
-            height: 22vh;
-            top: 8%;
-            left: -8%;
-            background: #7eb8ad;
-            animation-delay: 0s;
+        .cloud-1 {
+            width: 45vw;
+            height: 25vh;
+            top: 5%;
+            left: -5%;
+            background: #38bdf8;
         }
 
-        .cloud-b {
-            width: 36vw;
-            height: 18vh;
-            top: 18%;
-            right: -10%;
-            background: #c4a35a;
-            opacity: 0.22;
-            animation-delay: -8s;
-            animation-duration: 30s;
-        }
-
-        .rain {
-            position: absolute;
-            inset: 0;
-            pointer-events: none;
-            background: repeating-linear-gradient(
-                -18deg,
-                transparent 0,
-                transparent 14px,
-                rgba(255, 255, 255, 0.04) 14px,
-                rgba(255, 255, 255, 0.04) 15px
-            );
-            animation: rainShift 1.2s linear infinite;
-            opacity: 0.55;
+        .cloud-2 {
+            width: 38vw;
+            height: 20vh;
+            top: 22%;
+            right: -8%;
+            background: #fbbf24;
+            animation-delay: -10s;
+            animation-duration: 28s;
         }
 
         .shell {
@@ -109,119 +90,206 @@
         }
 
         .stage {
-            width: min(560px, 100%);
-            animation: riseIn 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+            width: min(620px, 100%);
+            animation: riseIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+
+        .brand-header {
+            text-align: center;
+            margin-bottom: 1.75rem;
+        }
+
+        .brand-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            background: rgba(255, 255, 255, 0.12);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(8px);
+            padding: 0.35rem 0.85rem;
+            border-radius: 999px;
+            color: #e2e8f0;
+            font-size: 0.76rem;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            margin-bottom: 0.75rem;
+        }
+
+        .brand-badge span {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #22c55e;
+            box-shadow: 0 0 8px #22c55e;
         }
 
         .brand {
             font-family: "Fraunces", serif;
-            font-size: clamp(3.4rem, 12vw, 5.4rem);
+            font-size: clamp(2.8rem, 8vw, 4.2rem);
             font-weight: 700;
-            line-height: 0.9;
+            line-height: 1;
             letter-spacing: -0.03em;
-            color: #f7faf8;
-            margin: 0 0 0.35rem;
-            text-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+            color: #ffffff;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
         }
 
         .tag {
-            margin: 0 0 1.75rem;
-            color: rgba(247, 250, 248, 0.78);
-            font-weight: 300;
-            font-size: 1.02rem;
-            letter-spacing: 0.01em;
-            max-width: 28ch;
+            color: rgba(226, 232, 240, 0.85);
+            font-weight: 400;
+            font-size: 0.98rem;
+            line-height: 1.45;
+            max-width: 44ch;
+            margin: 0 auto;
         }
 
         .panel {
             background: var(--paper);
-            backdrop-filter: blur(18px);
-            -webkit-backdrop-filter: blur(18px);
-            border: 1px solid var(--mist);
-            border-radius: 22px;
-            padding: 1.35rem 1.35rem 1.5rem;
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.22);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 1.6rem;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.35);
+        }
+
+        .field-group {
+            margin-bottom: 1.1rem;
         }
 
         label {
             display: block;
-            font-size: 0.72rem;
-            font-weight: 600;
+            font-size: 0.74rem;
+            font-weight: 700;
             letter-spacing: 0.08em;
             text-transform: uppercase;
             color: var(--ink-soft);
-            margin-bottom: 0.55rem;
+            margin-bottom: 0.45rem;
         }
 
-        .search-row {
-            display: grid;
-            grid-template-columns: 1fr auto;
-            gap: 0.65rem;
+        .select-wrapper {
+            position: relative;
         }
 
-        input[type="text"] {
+        select, input[type="text"] {
             width: 100%;
             border: 1.5px solid var(--line);
             background: var(--paper-solid);
             border-radius: 14px;
-            padding: 0.95rem 1rem;
+            padding: 0.85rem 1rem;
             font-family: inherit;
-            font-size: 1rem;
+            font-size: 0.95rem;
+            font-weight: 500;
             color: var(--ink);
             outline: none;
-            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+            transition: all 0.2s ease;
+            appearance: none;
+            -webkit-appearance: none;
         }
 
-        input[type="text"]:focus {
-            border-color: var(--river);
-            box-shadow: 0 0 0 3px rgba(15, 92, 82, 0.15);
+        select {
+            cursor: pointer;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%20475569'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2.5' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 1rem center;
+            background-size: 1.1rem;
+            padding-right: 2.5rem;
         }
 
-        button {
+        select:focus, input[type="text"]:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.18);
+        }
+
+        .grid-inputs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.85rem;
+            margin-bottom: 1.1rem;
+        }
+
+        .btn-fetch {
+            width: 100%;
             border: none;
             border-radius: 14px;
-            padding: 0.95rem 1.2rem;
-            background: linear-gradient(160deg, var(--river) 0%, var(--river-deep) 100%);
-            color: #f7faf8;
+            padding: 0.95rem 1.4rem;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-deep) 100%);
+            color: #ffffff;
             font-family: inherit;
-            font-weight: 600;
-            font-size: 0.95rem;
+            font-weight: 700;
+            font-size: 1rem;
             cursor: pointer;
-            transition: transform 0.15s ease, filter 0.2s ease;
-            white-space: nowrap;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
         }
 
-        button:hover { filter: brightness(1.08); }
-        button:active { transform: scale(0.98); }
-        button:disabled {
-            opacity: 0.55;
+        .btn-fetch:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(2, 132, 199, 0.45);
+            filter: brightness(1.05);
+        }
+
+        .btn-fetch:active { transform: scale(0.99); }
+        .btn-fetch:disabled {
+            opacity: 0.6;
             cursor: not-allowed;
-            filter: none;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .quick-pills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+            margin-top: 0.75rem;
+        }
+
+        .pill {
+            background: rgba(2, 132, 199, 0.08);
+            border: 1px solid rgba(2, 132, 199, 0.18);
+            border-radius: 999px;
+            padding: 0.25rem 0.65rem;
+            font-size: 0.74rem;
+            font-weight: 600;
+            color: var(--primary-deep);
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .pill:hover {
+            background: var(--primary);
+            color: #ffffff;
         }
 
         .status {
-            min-height: 1.4rem;
+            min-height: 1.2rem;
             margin-top: 0.85rem;
-            font-size: 0.88rem;
-            color: var(--ink-soft);
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-align: center;
         }
 
-        .status.error { color: #b42318; font-weight: 500; }
+        .status.error { color: #dc2626; }
         .status.loading {
-            color: var(--river);
+            color: var(--primary);
             animation: pulse 1.2s ease-in-out infinite;
         }
 
         .results {
-            margin-top: 1.1rem;
+            margin-top: 1.25rem;
             display: none;
             border-top: 1px solid var(--line);
-            padding-top: 1.1rem;
+            padding-top: 1.25rem;
         }
 
         .results.show {
             display: block;
-            animation: slideUp 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+            animation: slideUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
         }
 
         .hero-metric {
@@ -229,88 +297,109 @@
             align-items: flex-end;
             justify-content: space-between;
             gap: 1rem;
-            margin-bottom: 1.15rem;
+            margin-bottom: 1.25rem;
         }
 
         .temp {
             font-family: "Fraunces", serif;
-            font-size: clamp(3rem, 10vw, 3.8rem);
+            font-size: clamp(3.2rem, 10vw, 4.2rem);
             line-height: 0.9;
             letter-spacing: -0.03em;
             color: var(--ink);
         }
 
         .temp span {
-            font-size: 1.35rem;
+            font-size: 1.5rem;
             vertical-align: super;
             margin-left: 0.1rem;
             color: var(--ink-soft);
         }
 
-        .condition-block {
-            text-align: right;
-        }
+        .condition-block { text-align: right; }
 
         .condition {
-            font-weight: 600;
-            font-size: 1.05rem;
-            color: var(--river-deep);
+            font-weight: 700;
+            font-size: 1.15rem;
+            color: var(--primary-deep);
         }
 
         .place {
-            margin-top: 0.25rem;
-            font-size: 0.85rem;
+            margin-top: 0.3rem;
+            font-size: 0.88rem;
+            font-weight: 600;
             color: var(--ink-soft);
         }
 
-        .grid {
+        .badge-bar {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-bottom: 1rem;
+        }
+
+        .mini-badge {
+            background: rgba(15, 23, 42, 0.05);
+            border: 1px solid rgba(15, 23, 42, 0.1);
+            padding: 0.2rem 0.55rem;
+            border-radius: 6px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            color: var(--ink-soft);
+        }
+
+        .metrics-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 0.7rem;
+            gap: 0.75rem;
         }
 
-        .metric {
-            background: rgba(15, 92, 82, 0.06);
+        .metric-card {
+            background: rgba(2, 132, 199, 0.05);
+            border: 1px solid rgba(2, 132, 199, 0.1);
             border-radius: 14px;
-            padding: 0.85rem 0.9rem;
+            padding: 0.9rem 1rem;
         }
 
-        .metric .k {
+        .metric-card .k {
             display: block;
-            font-size: 0.68rem;
+            font-size: 0.7rem;
             letter-spacing: 0.07em;
             text-transform: uppercase;
+            font-weight: 700;
             color: var(--ink-soft);
             margin-bottom: 0.3rem;
         }
 
-        .metric .v {
-            font-weight: 600;
-            font-size: 1.05rem;
+        .metric-card .v {
+            font-weight: 700;
+            font-size: 1.1rem;
             color: var(--ink);
         }
 
-        .foot {
-            margin-top: 1rem;
-            font-size: 0.72rem;
+        .foot-info {
+            margin-top: 1.1rem;
+            font-size: 0.75rem;
             color: var(--ink-soft);
-            letter-spacing: 0.02em;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 0.5rem;
         }
 
-        .hint {
-            margin-top: 1.1rem;
-            color: rgba(247, 250, 248, 0.55);
-            font-size: 0.78rem;
+        .footer-caption {
+            margin-top: 1.5rem;
+            color: rgba(226, 232, 240, 0.65);
+            font-size: 0.8rem;
             text-align: center;
         }
 
         @keyframes riseIn {
-            from { opacity: 0; transform: translateY(24px); }
+            from { opacity: 0; transform: translateY(28px); }
             to { opacity: 1; transform: translateY(0); }
         }
 
         @keyframes slideUp {
-            from { opacity: 0; transform: translateY(12px); }
+            from { opacity: 0; transform: translateY(14px); }
             to { opacity: 1; transform: translateY(0); }
         }
 
@@ -321,55 +410,83 @@
 
         @keyframes floatCloud {
             0%, 100% { transform: translateX(0); }
-            50% { transform: translateX(4vw); }
-        }
-
-        @keyframes rainShift {
-            from { background-position: 0 0; }
-            to { background-position: 18px 28px; }
+            50% { transform: translateX(5vw); }
         }
 
         @keyframes drift {
             from { transform: translateY(0); }
-            to { transform: translateY(-18px); }
+            to { transform: translateY(-20px); }
         }
 
-        @media (max-width: 520px) {
-            .search-row { grid-template-columns: 1fr; }
-            button { width: 100%; }
-            .grid { grid-template-columns: 1fr; }
+        @media (max-width: 540px) {
+            .grid-inputs { grid-template-columns: 1fr; }
+            .metrics-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
     <div class="sky" aria-hidden="true">
-        <div class="cloud cloud-a"></div>
-        <div class="cloud cloud-b"></div>
-        <div class="rain"></div>
+        <div class="cloud cloud-1"></div>
+        <div class="cloud cloud-2"></div>
     </div>
 
     <main class="shell">
         <div class="stage">
-            <h1 class="brand">BAADAL</h1>
-            <p class="tag">Live sky over Kolkata &amp; West Bengal — rain, heat, and river wind in one glance.</p>
+            <header class="brand-header">
+                <div class="brand-badge">
+                    <span></span> IMD All-India Weather Network
+                </div>
+                <h1 class="brand">MAUSAM</h1>
+                <p class="tag">Real-time live sky observations across 435+ stations in 36 Indian States &amp; Union Territories.</p>
+            </header>
 
             <div class="panel">
-                <label for="stationInput">Station / City</label>
-                <div class="search-row">
-                    <input
-                        type="text"
-                        id="stationInput"
-                        list="stationList"
-                        placeholder="Try Kolkata, Howrah, Siliguri..."
-                        autocomplete="off"
-                    >
-                    <datalist id="stationList"></datalist>
-                    <button id="fetchBtn" onclick="fetchWeatherData()">Read sky</button>
+                <div class="grid-inputs">
+                    <div class="field-group">
+                        <label for="stateSelect">1. Select State / UT</label>
+                        <select id="stateSelect" onchange="onStateChange()">
+                            <option value="ALL">All States &amp; UTs (437 Stations)</option>
+                        </select>
+                    </div>
+
+                    <div class="field-group">
+                        <label for="stationInput">2. Select Weather Station</label>
+                        <input
+                            type="text"
+                            id="stationInput"
+                            list="stationList"
+                            placeholder="Type or pick station..."
+                            autocomplete="off"
+                        >
+                        <datalist id="stationList"></datalist>
+                    </div>
                 </div>
+
+                <div class="quick-pills">
+                    <span style="font-size: 0.72rem; color: var(--ink-soft); font-weight: 600; align-self: center;">Quick States:</span>
+                    <button class="pill" onclick="quickState('West Bengal')">West Bengal</button>
+                    <button class="pill" onclick="quickState('Maharashtra')">Maharashtra</button>
+                    <button class="pill" onclick="quickState('Delhi NCR')">Delhi NCR</button>
+                    <button class="pill" onclick="quickState('Karnataka')">Karnataka</button>
+                    <button class="pill" onclick="quickState('Tamil Nadu')">Tamil Nadu</button>
+                    <button class="pill" onclick="quickState('Uttar Pradesh')">Uttar Pradesh</button>
+                    <button class="pill" onclick="quickState('Gujarat')">Gujarat</button>
+                    <button class="pill" onclick="quickState('ALL')">Show All</button>
+                </div>
+
+                <button id="fetchBtn" class="btn-fetch" onclick="fetchWeatherData()">
+                    <span>⚡ Fetch Live Weather</span>
+                </button>
 
                 <div id="statusLine" class="status"></div>
 
                 <div id="weatherResults" class="results">
+                    <div class="badge-bar">
+                        <span class="mini-badge" id="resStateBadge">State: --</span>
+                        <span class="mini-badge" id="resIdBadge">IMD ID: --</span>
+                        <span class="mini-badge" id="resSourceBadge">Source: --</span>
+                    </div>
+
                     <div class="hero-metric">
                         <div class="temp" id="resTemp">--<span>&deg;C</span></div>
                         <div class="condition-block">
@@ -378,50 +495,112 @@
                         </div>
                     </div>
 
-                    <div class="grid">
-                        <div class="metric">
+                    <div class="metrics-grid">
+                        <div class="metric-card">
                             <span class="k">Feels like</span>
                             <span class="v" id="resFeels">--</span>
                         </div>
-                        <div class="metric">
-                            <span class="k">Humidity</span>
+                        <div class="metric-card">
+                            <span class="k">Relative Humidity</span>
                             <span class="v" id="resHumidity">--</span>
                         </div>
-                        <div class="metric">
-                            <span class="k">Wind</span>
+                        <div class="metric-card">
+                            <span class="k">Wind Speed</span>
                             <span class="v" id="resWind">--</span>
                         </div>
-                        <div class="metric">
-                            <span class="k">Rain</span>
+                        <div class="metric-card">
+                            <span class="k">Precipitation</span>
                             <span class="v" id="resRain">--</span>
                         </div>
                     </div>
 
-                    <div class="foot" id="resTime">Observed --</div>
+                    <div class="foot-info">
+                        <span id="resTime">Observed: --</span>
+                        <span id="resCoords">Coords: --</span>
+                    </div>
                 </div>
             </div>
 
-            <p class="hint">Open-Meteo · Asia/Kolkata · 36 West Bengal stations</p>
+            <p class="footer-caption">India Meteorological Department (IMD) Gateway · 437 Registered IoT Stations</p>
         </div>
     </main>
 
     <script>
-        let stationDictionary = {};
+        let allStationsMap = {};
+        let stationsByState = {};
+        let allStatesList = [];
 
         window.onload = async function () {
             try {
                 const response = await fetch("/api/stations");
-                stationDictionary = await response.json();
-                const dataList = document.getElementById("stationList");
-                for (const stationName in stationDictionary) {
-                    const option = document.createElement("option");
-                    option.value = stationName;
-                    dataList.appendChild(option);
+                const data = await response.json();
+
+                allStationsMap = data.stations || {};
+                stationsByState = data.by_state || {};
+                allStatesList = data.states || [];
+
+                populateStateDropdown();
+                populateStationList("ALL");
+
+                // Set default station to Kolkata or DelhiSafdarjung if available
+                const stationInput = document.getElementById("stationInput");
+                if (allStationsMap["KOLKATA (ALIPORE)"]) {
+                    stationInput.value = "KOLKATA (ALIPORE)";
+                } else if (Object.keys(allStationsMap).length > 0) {
+                    stationInput.value = Object.keys(allStationsMap)[0];
                 }
             } catch (error) {
-                setStatus("Could not load station list.", true);
+                setStatus("Could not load station directory from backend server.", true);
             }
         };
+
+        function populateStateDropdown() {
+            const stateSelect = document.getElementById("stateSelect");
+            stateSelect.innerHTML = `<option value="ALL">All States & Union Territories (437 Stations)</option>`;
+            
+            for (const stateName of allStatesList) {
+                const count = (stationsByState[stateName] || []).length;
+                const opt = document.createElement("option");
+                opt.value = stateName;
+                opt.textContent = `${stateName} (${count} station${count > 1 ? 's' : ''})`;
+                stateSelect.appendChild(opt);
+            }
+        }
+
+        function populateStationList(selectedState) {
+            const dataList = document.getElementById("stationList");
+            dataList.innerHTML = "";
+
+            let stationNames = [];
+
+            if (selectedState === "ALL" || !stationsByState[selectedState]) {
+                stationNames = Object.keys(allStationsMap).sort();
+            } else {
+                stationNames = stationsByState[selectedState].map(s => s.name).sort();
+            }
+
+            for (const name of stationNames) {
+                const option = document.createElement("option");
+                option.value = name;
+                dataList.appendChild(option);
+            }
+        }
+
+        function onStateChange() {
+            const selectedState = document.getElementById("stateSelect").value;
+            populateStationList(selectedState);
+
+            const input = document.getElementById("stationInput");
+            if (selectedState !== "ALL" && stationsByState[selectedState] && stationsByState[selectedState].length > 0) {
+                input.value = stationsByState[selectedState][0].name;
+            }
+        }
+
+        function quickState(stateName) {
+            const stateSelect = document.getElementById("stateSelect");
+            stateSelect.value = stateName;
+            onStateChange();
+        }
 
         function setStatus(message, isError = false, isLoading = false) {
             const el = document.getElementById("statusLine");
@@ -433,43 +612,40 @@
             const btn = document.getElementById("fetchBtn");
             const resultsDiv = document.getElementById("weatherResults");
             const rawInput = document.getElementById("stationInput").value.trim();
-            const searchName = rawInput.toUpperCase();
 
-            let matchedName = null;
-            for (const key of Object.keys(stationDictionary)) {
-                if (key.toUpperCase() === searchName) {
-                    matchedName = key;
-                    break;
-                }
-            }
-
-            if (!matchedName) {
-                setStatus("Pick a West Bengal station from the list.", true);
-                resultsDiv.classList.remove("show");
+            if (!rawInput) {
+                setStatus("Please enter or select a station name.", true);
                 return;
             }
 
             btn.disabled = true;
             resultsDiv.classList.remove("show");
-            setStatus("Listening to the sky…", false, true);
+            setStatus("Querying IMD Weather Station...", false, true);
 
             try {
-                const response = await fetch(`/api/weather?station=${encodeURIComponent(matchedName)}`);
+                const response = await fetch(`/api/weather?station=${encodeURIComponent(rawInput)}`);
                 const jsonResponse = await response.json();
 
-                if (jsonResponse.status !== "success") {
-                    throw new Error(jsonResponse.message || "Failed to parse data");
+                if (jsonResponse.status !== "success" || !jsonResponse.data) {
+                    throw new Error(jsonResponse.message || "Failed to fetch weather data");
                 }
 
                 const w = jsonResponse.data;
                 document.getElementById("resTemp").innerHTML = `${w.Temperature ?? "--"}<span>&deg;C</span>`;
-                document.getElementById("resCondition").textContent = w.Condition || "--";
-                document.getElementById("resPlace").textContent = `${w.Station || matchedName} · ${w.District || "West Bengal"}`;
+                document.getElementById("resCondition").textContent = w.Condition || "Clear Sky";
+                document.getElementById("resPlace").textContent = `${w.Station || rawInput}`;
+                
+                document.getElementById("resStateBadge").textContent = `State: ${w.State || 'India'}`;
+                document.getElementById("resIdBadge").textContent = `IMD ID: ${w.StationID || 'N/A'}`;
+                document.getElementById("resSourceBadge").textContent = `Source: ${w.Source || 'IMD Network'}`;
+
                 document.getElementById("resFeels").textContent = `${w["Feels Like"] ?? "--"} °C`;
                 document.getElementById("resHumidity").textContent = `${w["Relative Humidity"] ?? "--"} %`;
                 document.getElementById("resWind").textContent = `${w["Wind Speed"] ?? "--"} km/h`;
-                document.getElementById("resRain").textContent = `${w.Precipitation ?? "--"} mm`;
-                document.getElementById("resTime").textContent = `Observed ${w["Observed At"] || "--"} · Asia/Kolkata`;
+                document.getElementById("resRain").textContent = `${w.Precipitation ?? "0"} mm`;
+                
+                document.getElementById("resTime").textContent = `Observed: ${w["Observed At"] || "Live"}`;
+                document.getElementById("resCoords").textContent = `Coords: ${w.Latitude ?? '--'}, ${w.Longitude ?? '--'}`;
 
                 resultsDiv.classList.add("show");
                 setStatus("");
