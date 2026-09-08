@@ -1,35 +1,39 @@
 from flask import Flask, render_template, jsonify, request
 import requests
-from stations import STATIONS, STATIONS_BY_STATE
 
 app = Flask(__name__)
 
-# Weather code lookup table (WMO / Open-Meteo standard)
-WEATHER_CODES = {
-    0: "Clear sky",
-    1: "Mainly clear",
-    2: "Partly cloudy",
-    3: "Overcast",
-    45: "Fog",
-    48: "Depositing rime fog",
-    51: "Light drizzle",
-    53: "Moderate drizzle",
-    55: "Dense drizzle",
-    61: "Slight rain",
-    63: "Moderate rain",
-    65: "Heavy rain",
-    71: "Slight snow",
-    73: "Moderate snow",
-    75: "Heavy snow",
-    80: "Slight rain showers",
-    81: "Moderate rain showers",
-    82: "Violent rain showers",
-    95: "Thunderstorm",
-    96: "Thunderstorm with slight hail",
-    99: "Thunderstorm with heavy hail",
+# WMO Weather Codes mapping to condition descriptions and emojis
+WMO_CODES = {
+    0: ("Clear Sky", "☀️"),
+    1: ("Mainly Clear", "🌤️"),
+    2: ("Partly Cloudy", "⛅"),
+    3: ("Overcast", "☁️"),
+    45: ("Foggy", "🌫️"),
+    48: ("Rime Fog", "🌫️"),
+    51: ("Light Drizzle", "🌦️"),
+    53: ("Moderate Drizzle", "🌦️"),
+    55: ("Dense Drizzle", "🌧️"),
+    56: ("Freezing Drizzle", "🌧️❄️"),
+    57: ("Dense Freezing Drizzle", "🌧️❄️"),
+    61: ("Slight Rain", "🌧️"),
+    63: ("Moderate Rain", "🌧️"),
+    65: ("Heavy Rain", "🌧️"),
+    66: ("Freezing Rain", "🌧️❄️"),
+    67: ("Heavy Freezing Rain", "🌧️❄️"),
+    71: ("Slight Snow", "🌨️"),
+    73: ("Moderate Snow", "🌨️"),
+    75: ("Heavy Snow", "❄️"),
+    77: ("Snow Grains", "❄️"),
+    80: ("Rain Showers", "🌦️"),
+    81: ("Moderate Showers", "🌧️"),
+    82: ("Violent Showers", "⛈️"),
+    85: ("Snow Showers", "🌨️"),
+    86: ("Heavy Snow Showers", "❄️"),
+    95: ("Thunderstorm", "⛈️"),
+    96: ("Thunderstorm / Hail", "⛈️🌩️"),
+    99: ("Severe Storm / Hail", "⛈️🌩️")
 }
-
-OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast"
 
 
 @app.route('/')
@@ -37,128 +41,175 @@ def home():
     return render_template('index.html')
 
 
-@app.route('/api/stations', methods=['GET'])
-def get_stations():
-    states = sorted(list(STATIONS_BY_STATE.keys()))
-    return jsonify({
-        "status": "success",
-        "stations": STATIONS,
-        "states": states,
-        "by_state": STATIONS_BY_STATE
-    })
+@app.route('/api/search', methods=['GET'])
+def search_places():
+    query = request.args.get('q', '').strip()
+    if not query:
+        return jsonify({"status": "success", "results": []})
+    
+    try:
+        geocode_url = f"https://geocoding-api.open-meteo.com/v1/search?name={requests.utils.quote(query)}&count=8"
+        response = requests.get(geocode_url, timeout=5)
+        if response.status_code == 200:
+            data = response.json()
+            results = []
+            for item in data.get('results', []):
+                parts = [item.get('name', '')]
+                if item.get('admin2') and item.get('admin2') not in parts:
+                    parts.append(item.get('admin2'))
+                if item.get('admin1') and item.get('admin1') not in parts:
+                    parts.append(item.get('admin1'))
+                if item.get('country') and item.get('country') not in parts:
+                    parts.append(item.get('country'))
+                
+                results.append({
+                    "name": item.get('name'),
+                    "display": ", ".join(parts),
+                    "lat": item.get('latitude'),
+                    "lon": item.get('longitude'),
+                    "country": item.get('country')
+                })
+            return jsonify({"status": "success", "results": results})
+        return jsonify({"status": "success", "results": []})
+    except Exception:
+        return jsonify({"status": "success", "results": []})
 
 
 @app.route('/api/weather', methods=['GET'])
 def get_weather():
-    station_query = request.args.get('station') or request.args.get('station_id') or request.args.get('station_name')
+    city_name = request.args.get('city') or request.args.get('station') or request.args.get('q')
+    lat_arg = request.args.get('lat')
+    lon_arg = request.args.get('lon')
     
-    if not station_query:
-        return jsonify({"status": "error", "message": "No station provided"}), 400
+    if not city_name and (not lat_arg or not lon_arg):
+        return jsonify({"status": "error", "message": "No city or location provided"}), 400
 
-    station_query_clean = station_query.strip().upper()
-    
-    matched_name = None
-    matched_info = None
-
-    # 1. Match by exact station name or station ID
-    for name, info in STATIONS.items():
-        if name.upper() == station_query_clean or str(info.get('id')) == station_query_clean:
-            matched_name = name
-            matched_info = info
-            break
-
-    # 2. Fuzzy match if exact match wasn't found
-    if not matched_info:
-        for name, info in STATIONS.items():
-            if station_query_clean in name.upper():
-                matched_name = name
-                matched_info = info
-                break
-
-    if not matched_info:
-        return jsonify({"status": "error", "message": f"Station '{station_query}' not found in India database"}), 404
-
-    station_id = matched_info.get("id")
-    state = matched_info.get("state", "India")
-    lat = matched_info.get("lat")
-    lon = matched_info.get("lon")
-
-    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
-    
-    # Primary attempt: IMD Official Endpoint
-    if station_id:
-        imd_url = f"https://api.imd.gov.in/api/v1/current_wx?id={station_id}"
-        try:
-            imd_res = requests.get(imd_url, headers=headers, timeout=4)
-            if imd_res.status_code == 200:
-                imd_json = imd_res.json()
-                wx_data = None
-                if isinstance(imd_json, list) and len(imd_json) > 0:
-                    wx_data = imd_json[0]
-                elif isinstance(imd_json, dict):
-                    wx_data = imd_json.get("data") or imd_json.get("current_wx")
-                    if isinstance(wx_data, list) and len(wx_data) > 0:
-                        wx_data = wx_data[0]
-
-                if wx_data and isinstance(wx_data, dict):
-                    return jsonify({
-                        "status": "success",
-                        "data": {
-                            "Station": wx_data.get("Station") or matched_name,
-                            "State": state,
-                            "StationID": station_id,
-                            "Temperature": wx_data.get("Dry Bulb Temperature") or wx_data.get("Temperature"),
-                            "Feels Like": wx_data.get("Apparent Temperature") or wx_data.get("Dry Bulb Temperature"),
-                            "Relative Humidity": wx_data.get("Relative Humidity") or wx_data.get("Humidity"),
-                            "Wind Speed": wx_data.get("Wind Speed"),
-                            "Precipitation": wx_data.get("Precipitation", 0),
-                            "Condition": wx_data.get("Weather Condition") or wx_data.get("Condition") or "Clear Sky",
-                            "Observed At": wx_data.get("Time") or wx_data.get("Observed At") or "Live",
-                            "Source": "India Meteorological Department (IMD)",
-                            "Latitude": lat,
-                            "Longitude": lon
-                        }
-                    })
-        except Exception:
-            pass  # Failover to Open-Meteo coordinates provider
-
-    # Secondary high-reliability fallback: Open-Meteo Live Forecast
     try:
-        params = {
+        detailed_location = ""
+        matched_city = ""
+        district = ""
+        state = ""
+        country = ""
+        lat = None
+        lon = None
+
+        if lat_arg and lon_arg:
+            lat = float(lat_arg)
+            lon = float(lon_arg)
+            detailed_location = city_name or f"{lat}, {lon}"
+        else:
+            # Geocoding via Open-Meteo API
+            geocode_url = f"https://geocoding-api.open-meteo.com/v1/search?name={requests.utils.quote(city_name)}&count=1"
+            geo_response = requests.get(geocode_url, timeout=10)
+            geo_response.raise_for_status()
+            geo_data = geo_response.json()
+            
+            if not geo_data.get('results'):
+                return jsonify({"status": "error", "message": f"Location '{city_name}' not found. Please check spelling."}), 404
+                
+            location = geo_data['results'][0]
+            lat = location['latitude']
+            lon = location['longitude']
+            
+            matched_city = location.get('name', '')
+            district = location.get('admin2', '')
+            state = location.get('admin1', '')
+            country = location.get('country', '')
+
+            # Build clean location hierarchy
+            loc_parts = []
+            if matched_city: loc_parts.append(matched_city)
+            if district and district not in loc_parts: loc_parts.append(district)
+            if state and state not in loc_parts: loc_parts.append(state)
+            if country and country not in loc_parts: loc_parts.append(country)
+                
+            detailed_location = ", ".join(loc_parts)
+        
+        # Step 2: Fetch Telemetry from Open-Meteo
+        variables = "temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,snowfall,weather_code,cloud_cover,surface_pressure,wind_speed_10m,wind_gusts_10m"
+        weather_url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current={variables}&timezone=auto"
+        
+        weather_response = requests.get(weather_url, timeout=10)
+        weather_response.raise_for_status()
+        weather_data = weather_response.json()
+        
+        current = weather_data.get('current', {})
+        units = weather_data.get('current_units', {})
+        
+        weather_code = current.get('weather_code', 0)
+        condition_text, condition_icon = WMO_CODES.get(weather_code, ("Unknown", "❓"))
+        
+        is_day = current.get('is_day', 1)
+        if not is_day:
+            if weather_code == 0: condition_icon = "🌙"
+            elif weather_code in [1, 2]: condition_icon = "☁️🌙"
+
+        # Determine Weather Theme for Dynamic Dark Pastel Background & Particle Effects
+        if weather_code in [95, 96, 99]:
+            theme = "stormy"
+        elif (51 <= weather_code <= 67) or (80 <= weather_code <= 82) or (current.get('precipitation', 0) > 0):
+            theme = "rainy"
+        elif (71 <= weather_code <= 77) or (85 <= weather_code <= 86) or (current.get('snowfall', 0) > 0):
+            theme = "snowy"
+        elif weather_code in [45, 48]:
+            theme = "foggy"
+        elif weather_code in [2, 3]:
+            theme = "cloudy"
+        else:
+            theme = "clear-day" if is_day else "clear-night"
+
+        # Rain Calculation
+        precip_amount = current.get('precipitation', 0)
+        if precip_amount > 0 or theme == "rainy":
+            raining_status = f"Yes ({precip_amount} {units.get('precipitation', 'mm')})"
+        else:
+            raining_status = "No (0 mm)"
+
+        # Snow Calculation
+        snowfall_amount = current.get('snowfall', 0)
+        if snowfall_amount > 0 or theme == "snowy":
+            snowing_status = f"Yes ({snowfall_amount} {units.get('snowfall', 'cm')})"
+        else:
+            snowing_status = "No (0 cm)"
+
+        # Extreme Alert Thresholds
+        wind_speed = current.get('wind_speed_10m', 0)
+        extreme_alert = ""
+        if wind_speed >= 118:
+            extreme_alert = "🚨 EXTREME DANGER: CYCLONE / HURRICANE FORCE WINDS 🚨"
+        elif wind_speed >= 88:
+            extreme_alert = "⚠️ SEVERE STORM WARNING: GALE FORCE WINDS ⚠️"
+        elif weather_code in [82, 95, 96, 99]:
+            extreme_alert = "🌩️ ALERT: SEVERE THUNDERSTORM / HAIL ACTIVITY 🌩️"
+
+        payload = {
+            "city": detailed_location,
+            "name": matched_city or city_name,
+            "district": district,
+            "state": state,
+            "country": country,
             "latitude": lat,
             "longitude": lon,
-            "current": "temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code,precipitation,apparent_temperature",
-            "timezone": "Asia/Kolkata",
-            "wind_speed_unit": "kmh",
+            "condition": condition_text,
+            "icon": condition_icon,
+            "theme": theme,
+            "extreme_alert": extreme_alert,
+            "temperature": f"{current.get('temperature_2m', '--')}",
+            "temp_unit": f"{units.get('temperature_2m', '°C')}",
+            "feels_like": f"{current.get('apparent_temperature', '--')} {units.get('apparent_temperature', '°C')}",
+            "humidity": f"{current.get('relative_humidity_2m', '--')} {units.get('relative_humidity_2m', '%')}",
+            "raining_status": raining_status,
+            "snowing_status": snowing_status,
+            "cloud_cover": f"{current.get('cloud_cover', '--')} {units.get('cloud_cover', '%')}",
+            "wind_speed": f"{wind_speed} {units.get('wind_speed_10m', 'km/h')}",
+            "wind_gusts": f"{current.get('wind_gusts_10m', '--')} {units.get('wind_gusts_10m', 'km/h')}",
+            "surface_pressure": f"{current.get('surface_pressure', '--')} {units.get('surface_pressure', 'hPa')}"
         }
-        om_res = requests.get(OPEN_METEO_URL, params=params, timeout=8)
-        om_res.raise_for_status()
-        om_payload = om_res.json()
-        current = om_payload.get("current", {})
-
-        weather_code = current.get("weather_code")
-        condition = WEATHER_CODES.get(weather_code, f"Code {weather_code}")
-
-        return jsonify({
-            "status": "success",
-            "data": {
-                "Station": matched_name,
-                "State": state,
-                "StationID": station_id,
-                "Temperature": current.get("temperature_2m"),
-                "Feels Like": current.get("apparent_temperature"),
-                "Relative Humidity": current.get("relative_humidity_2m"),
-                "Wind Speed": current.get("wind_speed_10m"),
-                "Precipitation": current.get("precipitation"),
-                "Condition": condition,
-                "Observed At": current.get("time"),
-                "Source": "IMD Open Weather Network",
-                "Latitude": lat,
-                "Longitude": lon
-            }
-        })
+        
+        return jsonify({"status": "success", "data": payload})
+        
     except requests.exceptions.RequestException as e:
-        return jsonify({"status": "error", "message": f"Weather fetch failed: {str(e)}"}), 500
+        return jsonify({"status": "error", "message": f"Telemetry server connection error: {str(e)}"}), 500
 
 
 if __name__ == '__main__':
